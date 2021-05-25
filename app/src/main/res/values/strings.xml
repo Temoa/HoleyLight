@@ -4,7 +4,7 @@
          entries with 'translatable="false"' also need no translation. -->
 
     <string translatable="false" name="app_name">Holey Light</string>
-    <string translatable="false" name="app_details">Copyright © 2019 – Chainfire\nTwitter: @ChainfireXDA\nSources: github.com/Chainfire/HoleyLight\nTap to visit XDA thread</string>
+    <string translatable="false" name="app_details">Copyright © 2019-2021 – Chainfire\nTwitter: @ChainfireXDA\nSources: github.com/Chainfire/HoleyLight\nTap to visit XDA thread</string>
     <string translatable="false" name="app_website_url">https://forum.xda-developers.com/galaxy-s10/themes/app-holey-light-t3917675</string>
 
     <string name="permission_required">Permissions needed</string>
@@ -21,10 +21,10 @@
 
     <string name="error">Error</string>
     <string name="error_hide_notch"><![CDATA[<b>Holey Light</b> cannot function while the notch is hidden. Uncheck <b>Settings</b> - <b>Display</b> - <b>Full screen apps</b> - <b>Hide front camera</b>.]]></string>
-    <string name="error_unsupported_device"><![CDATA[<b>Holey Light</b> does not appear support your device. If you are using an <b>S10</b> variant please report this code to the XDA thread:<br><br>[ <b>%s</b> ]]]></string>
+    <string name="error_unsupported_device"><![CDATA[<b>Holey Light</b> does not appear to support your device. If you are using a <b>Samsung/Google</b> device please report this code to the XDA thread:<br><br>[ <b>%s</b> ]]]></string>
 
-<!-- obsolete --><string name="help_basic_title">Help</string>
-<!-- obsolete --><string name="help_basic_descrption">Some basic advice</string>
+<!-- obsolete --><string translatable="false" name="help_basic_title">Help</string>
+<!-- obsolete --><string translatable="false" name="help_basic_descrption">Some basic advice</string>
 <!-- obsolete --><string translatable="false" name="help_basic_message"><![CDATA[
         <b>Holey Light</b> piggybacks on <b>Always On Display (AOD)</b> (see Android Settings) to show notifications when the screen is off,
         so AOD must be enabled for those modes to work.<br>
@@ -85,7 +85,7 @@
 <!-- obsolete --><string translatable="false" name="settings_animation_powersave_screen_on_battery">@string/battery_screen_on</string>
 <!-- obsolete --><string translatable="false" name="settings_animation_powersave_screen_off_battery">@string/battery_screen_off</string>
 
-    <string name="settings_category_chainfire_title">Chainfire</string>
+    <string translatable="false" name="settings_category_chainfire_title">Chainfire</string>
     <string name="settings_playstore_title">All my apps</string>
     <string name="settings_playstore_description">View all my apps available on Google Play</string>
     <string name="settings_follow_twitter_title">Follow me on Twitter</string>
@@ -152,10 +152,10 @@
     <string name="settings_hide_aod_description">When the screen is off, hide Always On Display and show only our animation</string>
 
     <string name="notice_dialog_title">Notice</string>
-    <string name="notice_aod_required_message"><![CDATA[The current configuration requires <b>Always On Display</b> to be enabled.<br><br>Please go to <b>Settings -> Lock screen -> Always On Display</b> and set it to <b>Show Always</b> (or <b>Tap to show</b> if so desired).<br><br>Please also make sure its <b>Screen orientation</b> is set to <b>Portrait</b>.<br><br>You may also configure AOD\'s schedule and brightness.]]></string>
-    <string name="notice_aod_with_image_required_message"><![CDATA[The current configuration requires an image to be applied to <b>Always On Display</b>.<br><br>Please go to <b>Themes (AOD section)</b>, <b>Download</b> any (free) theme, and <b>Apply</b> it as <b>Image only</b>.<br><br>If you apply it as both <b>Clock and image</b>, the clock will eventually become visible.]]></string>
-    <string name="open_android_settings">Open Android Settings</string>
-    <string name="open_theme_store">Open Galaxy Themes</string>
+<!-- Samsung --><string name="notice_aod_required_message"><![CDATA[The current configuration requires <b>Always On Display</b> to be enabled.<br><br>Please go to <b>Settings -> Lock screen -> Always On Display</b> and set it to <b>Show Always</b> (or <b>Tap to show</b> if so desired).<br><br>Please also make sure its <b>Screen orientation</b> is set to <b>Portrait</b>.<br><br>You may also configure AOD\'s schedule and brightness.]]></string>
+<!-- Samsung/obsolete --><string translatable="false" name="notice_aod_with_image_required_message"><![CDATA[The current configuration requires an image to be applied to <b>Always On Display</b>.<br><br>Please go to <b>Themes (AOD section)</b>, <b>Download</b> any (free) theme, and <b>Apply</b> it as <b>Image only</b>.<br><br>If you apply it as both <b>Clock and image</b>, the clock will eventually become visible.]]></string>
+<!-- Samsung --><string name="open_android_settings">Open Android Settings</string>
+<!-- Samsung/obsolete --><string translatable="false" name="open_theme_store">Open Galaxy Themes</string>
 
     <string name="yes">Yes</string>
     <string name="no">No</string>
@@ -165,7 +165,7 @@
     <string name="setup_wizard_welcome"><![CDATA[Welcome to <b>Holey Light</b>! Let\'s get you setup.<br><br>A word of warning, this app requires some rather extreme permissions to be able to function. If you are not comfortable with that, you should not continue.<br><br>Note that the source code for this app is freely available for anyone to check out.<br><br>Several popups will follow, this will take a few minutes!]]></string>
     <string name="setup_wizard_run_while_screen_off"><![CDATA[We can show notifications while the screen is off, but this uses between <b>1%</b> and <b>5.5%</b> battery per <b>hour</b>, depending on your setup.<br><br>This also requires the <b>Always On Display</b> feature to be enabled. If you don\'t like <b>AOD</b>, we can hide it later!<br><br>Do you want to show notifications while the screen is off?]]></string>
     <string name="setup_wizard_choose_notification_style"><![CDATA[Please choose your animation style for when the screen is off.<br><br><b>Swirl</b> is a light that circles around the camera hole, and uses up to <b>5.5%</b> battery per hour (worst case).<br><br><b>Blink</b> is a blinking circle around the camera hole, and uses up to <b>3.5%</b> battery per hour (worst case).<br><br><b>Unholy Light</b> is a big circle in the middle of your screen. It isn\'t animated, but uses less than <b>1%</b> battery per hour. This option <i>always</i> <b>hides AOD</b>, which is <i>optional</i> for the other two.]]></string>
-    <string name="setup_wizard_hide_aod"><![CDATA[<b>Always On Display</b> is a Samsung feature that can show various information on your screen while it is turned off, using less than 1% battery per hour. Some find it useful, others find it distracting<br><br>We can <b>show AOD</b> together with our notification light, or we can <b>hide AOD</b> and present you with just our notification light and an otherwise black screen.]]></string>
+    <string name="setup_wizard_hide_aod"><![CDATA[<b>Always On Display</b> is a feature that can show various information on your screen while it is turned off, using less than 1% battery per hour. Some find it useful, others find it distracting<br><br>We can <b>show AOD</b> together with our notification light, or we can <b>hide AOD</b> and present you with just our notification light and an otherwise black screen.]]></string>
     <string name="setup_wizard_option_show_aod">Show AOD</string>
     <string name="setup_wizard_option_hide_aod">Hide AOD</string>
     <string name="setup_wizard_complete"><![CDATA[We\'re done with initial setup. More popup dialogs will follow to help you setup permissions and other Android settings to allow this app to function.<br><br>Afterwards, there are more settings for you to explore on your own!]]></string>
@@ -205,4 +205,137 @@
     <string name="x_seconds">%d seconds</string>
     <string name="x_minutes">%d minutes</string>
     <string name="x_hours">%d hours</string>
+
+    <!-- v0.70 -->
+
+    <string name="settings_animation_unholey_light_icons_title">Unholey Light: Icons</string>
+    <string name="settings_animation_unholey_light_icons_description">Show notification icons inside the Unholey Light</string>
+
+    <!-- v0.71 -->
+
+    <string name="permission_associate_2"><![CDATA[<br><br><b>Location</b> may also need to be (temporarily) enabled for the popup to show.]]></string>
+
+    <string name="settings_category_debug">Debug</string>
+    <string name="logcat_dump_title">Dump logcat</string>
+    <string name="logcat_dump_description">Dump partial logcat to file and exit. A full adb logcat is always preferred!</string>
+
+    <string name="colors_ignore_notification_color_state"><![CDATA[<b>Ignore</b> notification color state (current: <b>respect</b>)]]></string>
+    <string name="colors_respect_notification_color_state"><![CDATA[<b>Respect</b> notification color state (current: <b>ignore</b>)]]></string>
+
+    <string name="settings_seen_on_timeout_track_separately">Track separately</string>
+
+    <string name="settings_animation_brightness_title">Brightness: Screen off</string>
+<!-- Samsung --><string name="settings_animation_brightness_description"><![CDATA[The display brightness (for when the screen is off) is controlled by AOD, <b>Settings -> Lock screen -> Always On Display -> Auto brightness</b>.]]></string>
+
+    <string name="settings_animation_overlay_linger_title">Hide AOD: Overlay linger time</string>
+    <string name="settings_animation_overlay_linger_description">Delay showing the lockscreen when hiding AOD, may prevent showing AOD on screen shortly</string>
+
+    <string name="x_ms">%d milliseconds</string>
+
+    <string name="settings_animation_black_fill_title">Black fill</string>
+    <string name="settings_animation_black_fill_description">Fill area between notification and camera with black</string>
+
+    <string name="save">Save</string>
+    <string name="load">Load</string>
+
+    <string name="color_save_error">An error occurred saving color data</string>
+    <string name="color_load_error">An error occurred loading color data</string>
+
+    <string name="color_load_title">Load colors</string>
+    <string name="color_load_options"><![CDATA[Please choose a loading mode<br><br><b>Clear</b>: clear current colors, then load all from file<br><br><b>Add</b>: add colors from file, but keep current color on conflict<br><br><b>Overwrite</b>: add colors from file, overwriting existing colors]]></string>
+    <string name="color_load_option_clear">Clear</string>
+    <string name="color_load_option_add">Add</string>
+    <string name="color_load_option_overwrite">Overwrite</string>
+
+<!-- Google --><string name="notice_aod_required_message_google"><![CDATA[The current configuration requires <b>Always On Display</b> to be enabled.<br><br>Please go to <b>Settings -> Display -> Advanced -> Lock screen</b> and enable <b>Always show time and info</b>.]]></string>
+<!-- Google --><string name="settings_schedule_aod_description_unsupported">This device does not support a display schedule</string>
+
+    <string name="notice_not_officially_supported_device"><![CDATA[<b>Holey Light</b> does not <i>officially</i> support this device. If this device has a camera hole inside the display area, it <i>might</i> work. You will probably need to go to the <b>Tune</b> screen to make it look right.<br><br>If the app seems to work well, please report your tuning values and this code to the XDA thread:<br><br>[ <b>%s</b> ]]]></string>
+
+    <string name="instructions">Instructions</string>
+    <string name="ignore">Ignore</string>
+    <string name="root">Root</string>
+
+    <string name="aod_helper">AOD Helper</string>
+    <string name="aod_helper_update"><![CDATA[The <b>AOD Helper</b> package needs to be updated. All options using it have been disabled and need to be manually re-enabled after updating. Do you want instructions on how to update?]]></string>
+    <string name="aod_helper_permissions"><![CDATA[The <b>AOD Helper</b> package needs additional permissions. All options using it have been disabled and need to be manually re-enabled after granting permissions. Do you want instructions on how to update?<br><br>If your device is rooted, the problem <i>may</i> be solved for you if choose the <b>Root</b> option. You will get this popup again if it doesn\'t work.]]></string>
+
+    <string name="settings_category_aod_helper_title">@string/aod_helper</string>
+    <string name="settings_category_aod_helper_description">Power users only, experimental</string>
+
+    <string name="settings_aod_helper_install_title">Install</string>
+<!-- Samsung --><string name="settings_aod_helper_install_description_samsung"><![CDATA[<b>AOD Helper</b> is not currently installed. Tap for instructions.]]></string>
+<!-- Google --><string name="settings_aod_helper_install_description_google"><![CDATA[<b>AOD Helper</b> is not currently installed. <b>Root</b> or <b>adb shell</b> is required. Tap for instructions.]]></string>
+    <string name="settings_aod_helper_update_title">Update</string>
+    <string name="settings_aod_helper_update_description_normal"><![CDATA[<b>AOD Helper</b> is installed but outdated. It needs to updated to be used again. Tap for instructions.]]></string>
+    <string name="settings_aod_helper_update_description_permissions"><![CDATA[<b>AOD Helper</b> is installed but does not have the required permissions. Tap for instructions.]]></string>
+    <string name="settings_aod_helper_control_title">Automatic AOD control</string>
+<!-- obsolete --><string translatable="false" name="settings_aod_helper_control_description_samsung"><![CDATA[Enable and disable AOD automatically based on notification status. Reduces power usage when no notifications are active. <b>Not</b> compatible with AOD in <b>Tap to show</b> mode!]]></string>
+<!-- Google --><string name="settings_aod_helper_control_description_google">Enabled and disable AOD automatically based on notification status. Reduces power usage when no notifications are active.</string>
+<!-- Google --><string name="settings_aod_helper_increase_brightness_title_google">Maximize AOD brightness</string>
+<!-- Google --><string name="settings_aod_helper_increase_brightness_description_google">While still limited to automatic brightness settings, this option usually does increase AOD brightness significantly.</string>
+
+<!-- Google --><string name="settings_animation_brightness_description_google"><![CDATA[There is no display brightness (for when the screen is off) control in Android Settings on this device]]></string>
+
+    <string name="settings_category_customization">Customization</string>
+    <string name="settings_customization_locale_title">Language</string>
+    <string name="settings_customization_locale_default">Default</string>
+
+    <string name="manufacturer_detection_error">MANUFACTURER DETECTION ERROR</string>
+
+    <string name="donate_title">Donate</string>
+    <string name="donate_description_iap">Support my efforts, buy me a drink. Completely optional, does not unlock additional features.</string>
+    <string name="donate_sku_donate.1">Soda</string>
+    <string name="donate_sku_donate.2">Coffee</string>
+    <string name="donate_sku_donate.3">Beer</string>
+    <string name="donate_sku_donate.4">Wine</string>
+    <string name="donate_sku_donate.5">Scotch</string>
+    <string name="donate_sku_already_purchased">Already purchased</string>
+    <string name="donate_description_paypal">PayPal: chainfire@chainfire.eu</string>
+
+    <!-- v0.71 RC3 -->
+
+    <string name="tune_thickness">Add thickness: %.2fdp</string>
+<!-- Samsung --><string name="settings_aod_helper_control_description_samsung_2"><![CDATA[Enable and disable AOD automatically based on notification status. Reduces power usage when no notifications are active. <b>Not</b> compatible with AOD in <b>Tap to show</b> mode! AOD settings may be locked while enabled.]]></string>
+
+    <!-- v0.71 RC5 -->
+
+<!-- Samsung --><string name="settings_animation_unholey_light_show_clock_title">Unholey Light: Clock</string>
+<!-- Samsung --><string name="settings_animation_unholey_light_show_clock_description">Show AOD\'s clock (if configured)</string>
+<!-- Samsung --><string name="settings_animation_unholey_light_show_clock_description_incompat"><![CDATA[<b>Not</b> compatible with <b>AOD Helper</b>.]]></string>
+
+<!-- Samsung --><string name="aod_helper_known_issues_samsung_title">Known issues</string>
+<!-- Samsung --><string name="aod_helper_known_issues_samsung_description"><![CDATA[Due to how <b>AOD Helper</b> works, some <b>Holey Light</b> options may behave differently than expected. For the best experience, use these settings:]]></string>
+<!-- Samsung --><string name="aod_helper_known_issues_samsung_settings"><![CDATA[You may need to temporarily disable <b>AOD Helper</b> to be able to change <b>AOD</b> options in <b>Android Settings</b>]]></string>
+<!-- Samsung --><string name="aod_helper_known_issues_samsung_tap_to_show"><![CDATA[<b>AOD</b> should <b>not</b> be in <b>Tap to show</b> mode in <b>Android Settings</b>]]></string>
+<!-- Samsung --><string name="aod_helper_known_issues_samsung_hide_aod"><![CDATA[The <b>Hide AOD</b> option should be set to <b>Full</b> or <b>Partial</b>]]></string>
+<!-- Samsung --><string name="aod_helper_known_issues_samsung_unholey_clock"><![CDATA[The <b>Unholey Light: Clock</b> option should be turned <b>off</b>]]></string>
+
+    <string name="colors_conversation">Conversation</string>
+
+    <string name="settings_category_operation_description_v2"><![CDATA[This is <b>not</b> a battery state indicator!]]></string>
+
+    <string name="settings_category_tips">Tips</string>
+<!-- Samsung --><string name="tips_samsung_aod_image_title">AOD: Image and theme</string>
+<!-- Samsung --><string name="tips_samsung_aod_image_description"><![CDATA[If <b>Unholey Light</b> or <b>Hide AOD</b> is not working correctly, check your AOD background image or theme settings. Tap for instructions.]]></string>
+<!-- Samsung --><string name="tips_samsung_fingerprint_title">AOD: Fingerprint icon</string>
+<!-- Samsung --><string name="tips_samsung_fingerprint_description"><![CDATA[Fingerprint icon display is controlled by Android, <b>Settings -> Biometrics and Security -> Fingerprints -> Show icon when screen is off</b>. It may appear even if <b>Hide AOD</b> is enabled!]]></string>
+<!-- Samsung --><string name="tips_samsung_battery_title">AOD: Battery status</string>
+<!-- Samsung --><string name="tips_samsung_battery_description"><![CDATA[Battery status display is controlled by Android, <b>Settings -> Battery and device care -> Battery -> More battery settings -> Show charging information</b>.]]></string>
+
+    <string name="notice_aod_image_required"><![CDATA[The current configuration requires an image to be applied to <b>Always On Display</b>. It cannot be detected if you already performed this step.]]></string>
+    <string name="notice_aod_image_image"><![CDATA[A black <b>image</b> can be pre-applied for you, or you can pick your own image from the gallery. This option always include a clock.]]></string>
+    <string name="notice_aod_image_theme"><![CDATA[To apply a <b>theme</b>, go to <b>Themes (AOD section)</b>, <b>Download</b> any (free) theme, and <b>Apply</b> it, optionally with a clock.]]></string>
+    <string name="notice_aod_image_clock"><![CDATA[On older devices, configuring an image <b>with</b> clock can interfere with the <b>Hide AOD</b> option.]]></string>
+    <string name="image">Image</string>
+    <string name="theme">Theme</string>
+
+    <!-- v0.91 -->
+
+    <string translatable="false" name="debug_dialog_title">Select debug mode</string>
+    <string translatable="false" name="debug_mode_disabled">Disabled</string>
+    <string translatable="false" name="debug_mode_logging">Logging</string>
+    <string translatable="false" name="debug_mode_overlay">Logging + Overlay</string>
+    <string translatable="false" name="debug_mode_default">Default</string>
+    <string translatable="false" name="debug_mode_current">(current)</string>
 </resources>

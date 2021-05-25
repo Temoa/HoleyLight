@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Jorrit "Chainfire" Jongma
+ * Copyright (C) 2019-2021 Jorrit "Chainfire" Jongma
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 package eu.chainfire.holeylight.ui;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -25,12 +26,11 @@ import android.view.View;
 import android.widget.TextView;
 
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import eu.chainfire.holeylight.R;
 import eu.chainfire.holeylight.animation.NotificationAnimation;
 import eu.chainfire.holeylight.misc.Settings;
 
-public class TuneActivity extends AppCompatActivity implements Settings.OnSettingsChangedListener {
+public class TuneActivity extends BaseActivity implements Settings.OnSettingsChangedListener {
     private Settings settings = null;
     private NotificationAnimation animation = null;
 
@@ -40,7 +40,7 @@ public class TuneActivity extends AppCompatActivity implements Settings.OnSettin
         setContentView(R.layout.activity_tune);
 
         settings = Settings.getInstance(this);
-        animation = new NotificationAnimation(this,null, null);
+        animation = new NotificationAnimation(this, null, 0, null);
 
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
@@ -55,10 +55,12 @@ public class TuneActivity extends AppCompatActivity implements Settings.OnSettin
         TestNotification.show(this, TestNotification.NOTIFICATION_ID_TUNE);
         updateLabels();
         settings.registerOnSettingsChangedListener(this);
+        Settings.tuning = true;
     }
 
     @Override
     protected void onStop() {
+        Settings.tuning = false;
         settings.unregisterOnSettingsChangedListener(this);
         TestNotification.hide(this, TestNotification.NOTIFICATION_ID_TUNE);
         super.onStop();
@@ -86,6 +88,12 @@ public class TuneActivity extends AppCompatActivity implements Settings.OnSettin
             settings.setDpShiftHorizontal(animation.getDpShiftHorizontal() - 0.25f);
         } else if (view == findViewById(R.id.btnShiftHorizontalPlus)) {
             settings.setDpShiftHorizontal(animation.getDpShiftHorizontal() + 0.25f);
+        } else if (view == findViewById(R.id.btnAddThicknessMinus)) {
+            settings.setDpAddThickness(animation.getDpAddThickness() - 0.25f);
+            settings.setDpAddScaleBase(animation.getDpAddScaleBase() - 0.25f);
+        } else if (view == findViewById(R.id.btnAddThicknessPlus)) {
+            settings.setDpAddThickness(animation.getDpAddThickness() + 0.25f);
+            settings.setDpAddScaleBase(animation.getDpAddScaleBase() + 0.25f);
         } else if (view == findViewById(R.id.btnSpeedMinus)) {
             settings.setSpeedFactor(animation.getSpeedFactor() - 0.1f);
         } else if (view == findViewById(R.id.btnSpeedPlus)) {
@@ -98,6 +106,7 @@ public class TuneActivity extends AppCompatActivity implements Settings.OnSettin
         ((TextView)findViewById(R.id.tvAddScaleHorizontal)).setText(getString(R.string.tune_scale_horizontal, animation.getDpAddScaleHorizontal()));
         ((TextView)findViewById(R.id.tvShiftVertical)).setText(getString(R.string.tune_shift_vertical, animation.getDpShiftVertical()));
         ((TextView)findViewById(R.id.tvShiftHorizontal)).setText(getString(R.string.tune_shift_horizontal, animation.getDpShiftHorizontal()));
+        ((TextView)findViewById(R.id.tvAddThickness)).setText(getString(R.string.tune_thickness, animation.getDpAddThickness()));
         ((TextView)findViewById(R.id.tvSpeed)).setText(getString(R.string.tune_speed, animation.getSpeedFactor()));
     }
 
@@ -110,6 +119,7 @@ public class TuneActivity extends AppCompatActivity implements Settings.OnSettin
         return super.onOptionsItemSelected(item);
     }
 
+    @SuppressLint("AlwaysShowAction")
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuItem menuItem = menu.add(R.string.reset);

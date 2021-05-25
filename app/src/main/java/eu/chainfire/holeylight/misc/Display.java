@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Jorrit "Chainfire" Jongma
+ * Copyright (C) 2019-2021 Jorrit "Chainfire" Jongma
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ public class Display {
 
     private static android.view.Display display = null;
 
+    @SuppressWarnings("DuplicateBranchesInSwitch")
     public static State get(Context context) {
         if (display == null) {
             display = ((DisplayManager)context.getSystemService(DISPLAY_SERVICE)).getDisplay(0);

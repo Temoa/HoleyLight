@@ -1,6 +1,7 @@
 package eu.chainfire.holeylight.misc;
 
 import android.accessibilityservice.AccessibilityServiceInfo;
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -9,7 +10,6 @@ import android.companion.CompanionDeviceManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.PowerManager;
-import android.provider.Settings;
 import android.view.accessibility.AccessibilityManager;
 
 import java.util.List;
@@ -30,7 +30,10 @@ import static android.content.Context.POWER_SERVICE;
 public class Permissions {
     private static final int NOTIFICATION_ID_PERMISSIONS = 2001;
 
-    public enum Needed { DEVICE_SUPPORT, UNHIDE_NOTCH, COMPANION_DEVICE, NOTIFICATION_SERVICE, ACCESSIBILITY_SERVICE, BATTERY_OPTIMIZATION_EXEMPTION, NONE }
+    public enum Needed { DEVICE_SUPPORT, DEVICE_OFFICIAL_SUPPORT, UNHIDE_NOTCH, COMPANION_DEVICE, NOTIFICATION_SERVICE, ACCESSIBILITY_SERVICE, BATTERY_OPTIMIZATION_EXEMPTION, AOD_HELPER_UPDATE, AOD_HELPER_PERMISSIONS, NONE }
+
+    public static boolean allowAODHelperUpdateNeeded = true;
+    public static boolean allowAODHelperPermissionsNeeded = true;
 
     private static boolean haveAccessibilityService(Context context) {
         AccessibilityManager accessibilityManager = ((AccessibilityManager)context.getSystemService(ACCESSIBILITY_SERVICE));
@@ -49,7 +52,7 @@ public class Permissions {
             // Sometimes the official way doesn't work and returns an empty list, even if the
             // service is enabled. Try it this way.
             try {
-                String services = android.provider.Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+                String services = android.provider.Settings.Secure.getString(context.getContentResolver(), android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
                 String name = AccessibilityService.class.getCanonicalName();
                 if ((services != null) && (name != null) && (services.contains(name))) {
                     return accessibilityManager.isEnabled();
@@ -62,9 +65,13 @@ public class Permissions {
         return false;
     }
 
-    public static Needed detect(Context context) {
-        if (!(new NotificationAnimation(context, null, null)).isDeviceSupported()) {
+    @SuppressLint("WrongConstant")
+    public static Needed detect(Context context, boolean aodHelper) {
+        NotificationAnimation animation = new NotificationAnimation(context, null, 0, null);
+        if (!animation.isDeviceSupported()) {
             return Needed.DEVICE_SUPPORT;
+        } else if (!animation.isDeviceOfficiallySupported() && !Settings.getInstance(context).isDeviceOfficialSupportWarningShown()) {
+            return Needed.DEVICE_OFFICIAL_SUPPORT;
         } else if (android.provider.Settings.Secure.getInt(context.getContentResolver(), "display_cutout_hide_notch", 0) == 1) {
             return Needed.UNHIDE_NOTCH;
         } else if (((CompanionDeviceManager)context.getSystemService(COMPANION_DEVICE_SERVICE)).getAssociations().size() == 0) {
@@ -76,18 +83,31 @@ public class Permissions {
         } else if (!((PowerManager)context.getSystemService(POWER_SERVICE)).isIgnoringBatteryOptimizations(BuildConfig.APPLICATION_ID)) {
             return Needed.BATTERY_OPTIMIZATION_EXEMPTION;
         } else {
+            if (aodHelper) {
+                AODControl.AODHelperState state;
+                if (allowAODHelperUpdateNeeded || allowAODHelperPermissionsNeeded) {
+                    state = AODControl.getAODHelperState(context);
+                } else {
+                    state = AODControl.AODHelperState.NOT_INSTALLED;
+                }
+                if (allowAODHelperUpdateNeeded && state == AODControl.AODHelperState.NEEDS_UPDATE) {
+                    return Needed.AOD_HELPER_UPDATE;
+                } else if (allowAODHelperPermissionsNeeded && state == AODControl.AODHelperState.NEEDS_PERMISSIONS) {
+                    return Needed.AOD_HELPER_PERMISSIONS;
+                }
+            }
             return Needed.NONE;
         }
     }
 
     public static boolean isNotificationWorthy(Needed needed) {
-        return (needed != Needed.NONE) && (needed != Needed.DEVICE_SUPPORT);
+        return (needed != Needed.NONE) && (needed != Needed.DEVICE_SUPPORT) && (needed != Needed.DEVICE_OFFICIAL_SUPPORT);
     }
 
     public static void notify(Context context) {
-        if (isNotificationWorthy(detect(context))) {
+        if (isNotificationWorthy(detect(context, true))) {
             NotificationManagerCompat.from(context).deleteNotificationChannel(BuildConfig.APPLICATION_ID + ":permission");
-            final NotificationChannel chan = new NotificationChannel(BuildConfig.APPLICATION_ID + ":permission", context.getString(R.string.app_name), NotificationManager.IMPORTANCE_HIGH);
+            @SuppressLint("WrongConstant") final NotificationChannel chan = new NotificationChannel(BuildConfig.APPLICATION_ID + ":permission", context.getString(R.string.app_name), NotificationManager.IMPORTANCE_HIGH);
             chan.setDescription(context.getString(R.string.app_name));
             NotificationManagerCompat.from(context).createNotificationChannel(chan);
 

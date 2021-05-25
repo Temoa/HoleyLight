@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Jorrit "Chainfire" Jongma
+ * Copyright (C) 2019-2021 Jorrit "Chainfire" Jongma
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,10 @@ package eu.chainfire.holeylight.animation;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BlendMode;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
@@ -29,6 +31,9 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
+import android.graphics.Shader;
+import android.graphics.SweepGradient;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -42,9 +47,13 @@ import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 
 import androidx.annotation.NonNull;
+import eu.chainfire.holeylight.misc.Settings;
+import eu.chainfire.holeylight.misc.Slog;
 
 @SuppressWarnings({ "deprecation", "FieldCanBeLocal", "unused", "UnusedReturnValue" })
 public class SpritePlayer extends RelativeLayout {
+    public static volatile Mode test_lastDrawMode = null;
+
     public enum Mode { SWIRL, BLINK, SINGLE, TSP, TSP_HIDE }
 
     private final int TSP_FAST_DRAW_TIME = 10000;
@@ -75,31 +84,45 @@ public class SpritePlayer extends RelativeLayout {
     private volatile OnAnimationListener onAnimationListener = null;
 
     private final Paint paint = new Paint();
+    private final Paint paintTsp = new Paint();
+    private final Paint paintTspTransparent = new Paint();
+    private final Paint paintTspTransparentDebug = new Paint();
     private final float dpToPx;
 
     private volatile int frame = -1;
+    private volatile SpriteSheet spriteSheetSwirlPrevious = null;
+    private volatile SpriteSheet spriteSheetBlinkPrevious = null;
+    private volatile SpriteSheet spriteSheetSinglePrevious = null;
     private volatile SpriteSheet spriteSheetSwirl = null;
     private volatile SpriteSheet spriteSheetBlink = null;
     private volatile SpriteSheet spriteSheetSingle = null;
     private volatile int spriteSheetLoading = 0;
-    private volatile Point lastSpriteSheetRequest = new Point(0, 0);
-    private volatile Rect dest = new Rect();
-    private volatile Rect destDouble = new Rect();
+    private volatile long spriteSheetLoadingId = 0;
+    private final Point lastSpriteSheetRequest = new Point(0, 0);
+    private volatile boolean forceSpriteSheetReload = false;
+    private final Rect dest = new Rect();
+    private final Rect destDouble = new Rect();
     private volatile boolean surfaceInvalidated = true;
     private volatile boolean draw = false;
     private volatile boolean wanted = false;
     private volatile int width = -1;
     private volatile int height = -1;
     private volatile int[] colors = null;
+    private volatile Drawable[] icons = null;
     private volatile float speed = 1.0f;
     private volatile Mode drawMode = Mode.SWIRL;
     private volatile boolean drawBackground = false;
     private volatile long modeStart = 0L;
     private volatile boolean surfaceReady = false;
+    private volatile boolean tspBlank = false;
+    private volatile boolean blackFill = false;
+    private volatile Rect tspTransparentArea = null;
+    private volatile boolean tspTransparentDrawn = false;
 
     public SpritePlayer(Context context) {
         super(context);
 
+        // not adjusted for density but shouldn't be important here
         dpToPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getContext().getResources().getDisplayMetrics());
 
         handlerThreadRender = new HandlerThread("SpritePlayer#Render");
@@ -113,6 +136,14 @@ public class SpritePlayer extends RelativeLayout {
         paint.setAntiAlias(false);
         paint.setDither(false);
         paint.setFilterBitmap(false);
+
+        paintTsp.setAntiAlias(true);
+        paintTsp.setDither(false);
+        paintTsp.setFilterBitmap(false);
+
+        paintTspTransparent.setColor(Color.TRANSPARENT);
+        paintTspTransparent.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+        paintTspTransparentDebug.setColor(0x4000FF00);
 
         handlerRender.post(() -> {
             Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
@@ -131,11 +162,14 @@ public class SpritePlayer extends RelativeLayout {
 
         while (choreographer == null) {
             try {
+                //noinspection BusyWait
                 Thread.sleep(1);
             } catch (InterruptedException e) {
                 // no action
             }
         }
+
+        test_lastDrawMode = drawMode;
     }
 
     @Override
@@ -151,7 +185,7 @@ public class SpritePlayer extends RelativeLayout {
         evaluate();
     }
 
-    private SurfaceHolder.Callback2 surfaceCallback = new SurfaceHolder.Callback2() {
+    private final SurfaceHolder.Callback2 surfaceCallback = new SurfaceHolder.Callback2() {
         @Override
         public void surfaceRedrawNeeded(SurfaceHolder holder) {
             surfaceInvalidated = true;
@@ -190,6 +224,29 @@ public class SpritePlayer extends RelativeLayout {
         return false;
     }
 
+    @Override
+    protected void onDraw(Canvas canvas) {
+        if (isTSPMode() && !tspBlank && tspTransparentArea != null && SystemClock.elapsedRealtime() - modeStart > TSP_FIRST_DRAW_DELAY) {
+            Slog.d("Clock", "performDraw");
+            canvas.drawRect(tspTransparentArea, Settings.DEBUG_OVERLAY ? paintTspTransparentDebug : paintTspTransparent);
+            tspTransparentDrawn = true;
+        }
+    }
+
+    private final Runnable scheduleBackgroundDraw = new Runnable() {
+        @Override
+        public void run() {
+            handlerMain.removeCallbacks(scheduleBackgroundDraw);
+            if (isTSPMode() && tspTransparentArea != null) {
+                if (SystemClock.elapsedRealtime() - modeStart > TSP_FIRST_DRAW_DELAY) {
+                    invalidate();
+                } else {
+                    handlerMain.postDelayed(scheduleBackgroundDraw, Math.max(50, TSP_FIRST_DRAW_DELAY - (SystemClock.elapsedRealtime() - modeStart)));
+                }
+            }
+        }
+    };
+
     @SuppressWarnings("all")
     private void renderFrame(Canvas canvas, SpriteSheet spriteSheet, int frame, float startAngle, float radiusDecrease) {
         if (drawBackground) {
@@ -198,15 +255,16 @@ public class SpritePlayer extends RelativeLayout {
             // on hardware accelerated canvas the content is already cleared
             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
         }
+        if (Settings.DEBUG_OVERLAY) canvas.drawColor(0x80808080);
         if (isTSPMode()) {
             // TSP_HIDE is a no_op, background drawn already, we only handle it at all because
             // rendering here causes the rest of the screen to be updated as well
             //
             // We delay a short time to prevent the circle jumping around on first show, due to
             // AOD start TSP rect updates
-            if ((drawMode == Mode.TSP) && (SystemClock.elapsedRealtime() - modeStart > TSP_FIRST_DRAW_DELAY)) {
-                paint.setColorFilter(null);
-                paint.setXfermode(null);
+            if (!tspBlank && (drawMode == Mode.TSP) && (SystemClock.elapsedRealtime() - modeStart > TSP_FIRST_DRAW_DELAY)) {
+                paintTsp.setColorFilter(null);
+                paintTsp.setXfermode(null);
 
                 float left = radiusDecrease;
                 float top = radiusDecrease;
@@ -219,35 +277,98 @@ public class SpritePlayer extends RelativeLayout {
                 float radius = (width / 2f) - (8f * dpToPx);
 
                 float anglePerColor = 360f / colors.length;
-                for (int i = 0; i < colors.length; i++) {
-                    paint.setColor(colors[i]);
-                    canvas.drawArc(left, top, right, bottom, startAngle + 270 + (anglePerColor * i), anglePerColor, true, paint);
+
+                int[] sweepColors;
+                if (colors.length == 1) {
+                    sweepColors = new int[] { colors[0], colors[0] };
+                } else {
+                    sweepColors = new int[colors.length*7 + 1];
+                    for (int i = 0; i < 4; i++) sweepColors[i] = colors[0];
+                    for (int i = 1; i < colors.length; i++) {
+                        for (int j = 4 + (i - 1)*7; j < 4 + i*7; j++) {
+                            sweepColors[j] = colors[i];
+                        }
+                    }
+                    for (int i = sweepColors.length - 4; i < sweepColors.length; i++) sweepColors[i] = colors[0];
                 }
 
+                Shader sweep = new SweepGradient(cx, cy, sweepColors, null);
+                Matrix matrix = new Matrix();
+                matrix.preRotate(startAngle + 270, cx, cy);
+                sweep.setLocalMatrix(matrix);
+                paintTsp.setShader(sweep);
+                canvas.drawArc(left, top, right, bottom, 0f, 360f, true, paintTsp);
+                paintTsp.setShader(null);
+
                 if (drawBackground) {
-                    paint.setColor(Color.BLACK);
+                    paintTsp.setColor(Color.BLACK);
                 } else {
-                    paint.setColor(Color.TRANSPARENT);
-                    paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+                    paintTsp.setColor(Color.TRANSPARENT);
+                    paintTsp.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
                 }
-                canvas.drawCircle(cx, cy, radius, paint);
+                canvas.drawCircle(cx, cy, radius, paintTsp);
+
+                if (icons.length == colors.length) {
+                    int drawableIcons = 0;
+                    for (int i = 0; i < icons.length; i++) {
+                        if (icons[i] != null) {
+                            drawableIcons++;
+                        }
+                    }
+
+                    for (int i = 0; i < icons.length; i++) {
+                        if (icons[i] != null) {
+                            float x = (right + left)/2f;
+                            float y = (bottom + top)/2f;
+                            if (drawableIcons > 1) {
+                                x += Math.cos(Math.toRadians(startAngle + 270 + (anglePerColor * i))) * radius/2;
+                                y += Math.sin(Math.toRadians(startAngle + 270 + (anglePerColor * i))) * radius/2;
+                            }
+
+                            float w = 24 * dpToPx;
+                            float h = 24 * dpToPx;
+                            if (drawableIcons == 1) {
+                                w *= 2f;
+                                h *= 2f;
+                            }
+                            float l = x - w/2f;
+                            float t = y - h/2f;
+                            icons[i].setBounds(Math.round(l), Math.round(t), Math.round(l + w), Math.round(h + t));
+                            icons[i].setColorFilter(null);
+                            icons[i].setTintList(null);
+                            icons[i].setTintBlendMode(BlendMode.SRC_IN);
+                            icons[i].setTintMode(PorterDuff.Mode.SRC_IN);
+                            icons[i].setTint(colors[i]);
+                            icons[i].draw(canvas);
+                        }
+                    }
+                }
             }
         } else if (spriteSheet != null) {
             paint.setXfermode(null);
             paint.setColor(Color.WHITE);
             SpriteSheet.Sprite sprite = spriteSheet.getFrame(frame);
             Bitmap bitmap = sprite.getBitmap();
+            Rect area = sprite.getArea();
+            Bitmap black = spriteSheet.getBlackFrame();
             if ((colors != null) && (colors.length == 1)) {
+                if (blackFill && !Settings.tuning) {
+                    if (!black.isRecycled()) {
+                        paint.setColorFilter(null);
+                        canvas.drawBitmap(black, new Rect(0, 0, black.getWidth(), black.getHeight()), dest, paint);
+                    }
+                }
+
                 // fast single-color mode
                 paint.setColorFilter(new PorterDuffColorFilter(colors[0], PorterDuff.Mode.SRC_ATOP));
                 if (!bitmap.isRecycled()) {
-                    canvas.drawBitmap(sprite.getBitmap(), sprite.getArea(), dest, paint);
+                    canvas.drawBitmap(bitmap, area, dest, paint);
                 }
             } else {
                 // slower multi-colored mode
                 paint.setColorFilter(null);
                 if (!bitmap.isRecycled()) {
-                    canvas.drawBitmap(sprite.getBitmap(), sprite.getArea(), dest, paint);
+                    canvas.drawBitmap(bitmap, area, dest, paint);
                 }
 
                 paint.setXfermode(new PorterDuffXfermode(drawBackground ? PorterDuff.Mode.MULTIPLY : PorterDuff.Mode.SRC_ATOP));
@@ -258,11 +379,19 @@ public class SpritePlayer extends RelativeLayout {
                     paint.setColor(colors[i]);
                     canvas.drawArc(destDouble.left, destDouble.top, destDouble.right, destDouble.bottom, startAngle + 270 + (anglePerColor * i), anglePerColor, true, paint);
                 }
+
+                if (blackFill && !Settings.tuning) {
+                    if (!black.isRecycled()) {
+                        paint.setColorFilter(null);
+                        paint.setXfermode(null);
+                        canvas.drawBitmap(black, new Rect(0, 0, black.getWidth(), black.getHeight()), dest, paint);
+                    }
+                }
             }
         }
     }
 
-    private Choreographer.FrameCallback frameCallback = new Choreographer.FrameCallback() {
+    private final Choreographer.FrameCallback frameCallback = new Choreographer.FrameCallback() {
         private long startTimeNanos = 0;
         private int lastFrameDrawn = -1;
         private int[] lastColors = null;
@@ -380,7 +509,7 @@ public class SpritePlayer extends RelativeLayout {
         }
     };
 
-    private Runnable tspFrame = () -> frameCallback.doFrame(System.nanoTime());
+    private final Runnable tspFrame = () -> frameCallback.doFrame(System.nanoTime());
 
     private void cancelNextFrame() {
         handlerRender.removeCallbacks(tspFrame);
@@ -398,6 +527,7 @@ public class SpritePlayer extends RelativeLayout {
     }
 
     private void callOnSpriteSheetNeeded(int width, int height) {
+        if (width == -1 || height == -1) return;
         synchronized (sync) {
             if (isTSPMode()) {
                 surfaceInvalidated = true;
@@ -406,24 +536,53 @@ public class SpritePlayer extends RelativeLayout {
             }
             if (onSpriteSheetNeededListener == null) return;
             if (
+                !forceSpriteSheetReload &&
                 (spriteSheetSwirl != null) && (spriteSheetSwirl.getWidth() == width) && (spriteSheetSwirl.getHeight() == height) &&
                 (spriteSheetBlink != null) && (spriteSheetBlink.getWidth() == width) && (spriteSheetBlink.getHeight() == height) &&
                 (spriteSheetSingle != null) && (spriteSheetSingle.getWidth() == width) && (spriteSheetSingle.getHeight() == height)
             ) return;
-            if ((lastSpriteSheetRequest.x == width) && (lastSpriteSheetRequest.y == height)) return;
+            if (!forceSpriteSheetReload && (lastSpriteSheetRequest.x == width) && (lastSpriteSheetRequest.y == height)) return;
             lastSpriteSheetRequest.set(width, height);
-            if (spriteSheetLoading == 0) {
-                resetSpriteSheet(null);
-            }
             dest.set(0, 0, width, height);
             destDouble.set(dest.centerX() - width, dest.centerY() - height, dest.centerX() + width, dest.centerY() + height);
+            if (
+                !forceSpriteSheetReload &&
+                (spriteSheetSwirlPrevious != null) && (spriteSheetSwirlPrevious.getWidth() == width) && (spriteSheetSwirlPrevious.getHeight() == height) &&
+                (spriteSheetBlinkPrevious != null) && (spriteSheetBlinkPrevious.getWidth() == width) && (spriteSheetBlinkPrevious.getHeight() == height) &&
+                (spriteSheetSinglePrevious != null) && (spriteSheetSinglePrevious.getWidth() == width) && (spriteSheetSinglePrevious.getHeight() == height)
+            ) {
+                swapSpriteSheet(null);
+                evaluate();
+                return;
+            } else if (spriteSheetLoading == 0) {
+                resetSpriteSheet(null);
+            }
             spriteSheetLoading++;
+            spriteSheetLoadingId++;
+            final long callbackId = spriteSheetLoadingId;
+            final boolean handleForceReload = forceSpriteSheetReload;
             handlerLoader.post(() -> {
                 OnSpriteSheetNeededListener listener;
                 synchronized (sync) {
                     listener = onSpriteSheetNeededListener;
                 }
-                if (listener != null) {
+                if ((listener != null) && (callbackId == spriteSheetLoadingId)) {
+                    if (handleForceReload) {
+                        if (spriteSheetSwirlPrevious != null) {
+                            spriteSheetSwirlPrevious.recycle();
+                            spriteSheetSwirlPrevious = null;
+                        }
+                        if (spriteSheetBlinkPrevious != null) {
+                            spriteSheetBlinkPrevious.recycle();
+                            spriteSheetBlinkPrevious = null;
+                        }
+                        if (spriteSheetSinglePrevious != null) {
+                            spriteSheetSinglePrevious.recycle();
+                            spriteSheetSinglePrevious = null;
+                        }
+                        forceSpriteSheetReload = false;
+                    }
+
                     SpriteSheet spriteSheetSwirl = listener.onSpriteSheetNeeded(width, height, Mode.SWIRL);
                     SpriteSheet spriteSheetBlink = listener.onSpriteSheetNeeded(width, height, Mode.BLINK);
                     SpriteSheet spriteSheetSingle = listener.onSpriteSheetNeeded(width, height, Mode.SINGLE);
@@ -449,13 +608,7 @@ public class SpritePlayer extends RelativeLayout {
             if (this.onSpriteSheetNeededListener == onSpriteSheetNeededListener) return;
 
             this.onSpriteSheetNeededListener = onSpriteSheetNeededListener;
-            if (
-                    (width != -1) && (height != -1) &&
-                    !((spriteSheetSwirl != null) && (spriteSheetSwirl.getWidth() == width) && spriteSheetSwirl.getHeight() == height) &&
-                    !((spriteSheetBlink != null) && (spriteSheetBlink.getWidth() == width) && spriteSheetBlink.getHeight() == height)
-            ) {
-                callOnSpriteSheetNeeded(width, height);
-            }
+            callOnSpriteSheetNeeded(width, height);
         }
     }
 
@@ -468,21 +621,57 @@ public class SpritePlayer extends RelativeLayout {
             if ((mode == null) || (drawMode == mode)) {
                 frame = -1;
             }
-            if ((mode == null) || (mode == Mode.SWIRL)) {
-                SpriteSheet old = spriteSheetSwirl;
+            if (((mode == null) || (mode == Mode.SWIRL)) && spriteSheetSwirl != null) {
+                SpriteSheet recycle = spriteSheetSwirlPrevious;
+                spriteSheetSwirlPrevious = spriteSheetSwirl;
                 spriteSheetSwirl = null;
-                if (old != null) old.recycle();
+                if (recycle != null) recycle.recycle();
             }
-            if ((mode == null) || (mode == Mode.BLINK)) {
-                SpriteSheet old = spriteSheetBlink;
+            if (((mode == null) || (mode == Mode.BLINK)) && spriteSheetBlink != null) {
+                SpriteSheet recycle = spriteSheetBlinkPrevious;
+                spriteSheetBlinkPrevious = spriteSheetBlink;
                 spriteSheetBlink = null;
-                if (old != null) old.recycle();
+                if (recycle != null) recycle.recycle();
             }
-            if ((mode == null) || (mode == Mode.SINGLE)) {
-                SpriteSheet old = spriteSheetSingle;
+            if (((mode == null) || (mode == Mode.SINGLE)) && spriteSheetSingle != null) {
+                SpriteSheet recycle = spriteSheetSinglePrevious;
+                spriteSheetSinglePrevious = spriteSheetSingle;
                 spriteSheetSingle = null;
-                if (old != null) old.recycle();
+                if (recycle != null) recycle.recycle();
             }
+            if ((mode == null) || (drawMode == mode)) {
+                surfaceInvalidated = true;
+                try {
+                    Canvas canvas = surfaceView.getHolder().lockCanvas();
+                    try {
+                        if (!canvas.isHardwareAccelerated()) {
+                            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+                        }
+                    } finally {
+                        surfaceView.getHolder().unlockCanvasAndPost(canvas);
+                    }
+                } catch (Throwable t) {
+                    // ...
+                }
+            }
+        }
+    }
+
+    private void swapSpriteSheet(Mode mode) {
+        synchronized (sync) {
+            if ((mode == null) || (drawMode == mode)) {
+                frame = -1;
+            }
+            SpriteSheet tmp;
+            tmp = spriteSheetSwirl;
+            spriteSheetSwirl = spriteSheetSwirlPrevious;
+            spriteSheetSwirlPrevious = tmp;
+            tmp = spriteSheetBlink;
+            spriteSheetBlink = spriteSheetBlinkPrevious;
+            spriteSheetBlinkPrevious = tmp;
+            tmp = spriteSheetSingle;
+            spriteSheetSingle = spriteSheetSinglePrevious;
+            spriteSheetSinglePrevious = tmp;
             if ((mode == null) || (drawMode == mode)) {
                 surfaceInvalidated = true;
                 try {
@@ -531,10 +720,17 @@ public class SpritePlayer extends RelativeLayout {
         }
     }
 
+    public void setIcons(Drawable[] icons) {
+        synchronized (sync) {
+            this.icons = icons;
+        }
+    }
+
     private void startUpdating() {
         synchronized (sync) {
             if (!draw) {
                 modeStart = SystemClock.elapsedRealtime();
+                handlerMain.post(scheduleBackgroundDraw);
             }
             draw = true;
             callNextFrame(true);
@@ -588,12 +784,26 @@ public class SpritePlayer extends RelativeLayout {
         return drawMode;
     }
 
-    public void setMode(Mode mode) {
+    public void setMode(Mode mode, boolean blackFill) {
         synchronized (sync) {
+            boolean redraw = false;
             if (mode != drawMode) {
                 frame = -1;
-                modeStart = SystemClock.elapsedRealtime();
+                if (mode == Mode.TSP && drawMode == Mode.TSP_HIDE) {
+                    modeStart = SystemClock.elapsedRealtime() - (TSP_FIRST_DRAW_DELAY / 4) * 3;
+                } else {
+                    modeStart = SystemClock.elapsedRealtime();
+                }
                 drawMode = mode;
+                redraw = true;
+                handlerMain.post(scheduleBackgroundDraw);
+            }
+            test_lastDrawMode = drawMode;
+            if (blackFill != this.blackFill) {
+                this.blackFill = blackFill;
+                redraw = true;
+            }
+            if (redraw) {
                 surfaceInvalidated = true;
                 evaluate();
             }
@@ -608,6 +818,12 @@ public class SpritePlayer extends RelativeLayout {
                 case SINGLE: return spriteSheetSingle;
             }
             return null;
+        }
+    }
+
+    public void updateTransparentArea(Rect rect) {
+        synchronized (sync) {
+            tspTransparentArea = rect == null ? null : new Rect(rect);
         }
     }
 
@@ -669,5 +885,18 @@ public class SpritePlayer extends RelativeLayout {
 
     public boolean isMultiColorMode(Mode mode) {
         return (mode == Mode.SINGLE) || isTSPMode(mode);
+    }
+
+    public boolean isTSPBlank() {
+        return tspBlank;
+    }
+
+    public void setTSPBlank(boolean value) {
+        Slog.d("SpritePlayer", "tspBlank --> %s", value ? "TRUE" : "FALSE");
+        tspBlank = value;
+    }
+
+    public void forceReload() {
+        forceSpriteSheetReload = true;
     }
 }

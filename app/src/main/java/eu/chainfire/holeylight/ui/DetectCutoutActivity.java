@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Jorrit "Chainfire" Jongma
+ * Copyright (C) 2019-2021 Jorrit "Chainfire" Jongma
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,19 +20,25 @@ package eu.chainfire.holeylight.ui;
 
 import android.os.Bundle;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.ViewCompat;
+import eu.chainfire.holeylight.BuildConfig;
 import eu.chainfire.holeylight.R;
 import eu.chainfire.holeylight.animation.NotificationAnimation;
+import eu.chainfire.holeylight.service.NotificationTracker;
 
-public class DetectCutoutActivity extends AppCompatActivity {
+public class DetectCutoutActivity extends BaseActivity {
     private NotificationAnimation animation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detect_cutout);
-        animation = new NotificationAnimation(this,null, null);
+
+        NotificationTracker tracker = NotificationTracker.getInstance();
+        byte[] items = getIntent().getByteArrayExtra(BuildConfig.APPLICATION_ID + "/notifications");
+        tracker.loadFromBytes(items);
+
+        animation = new NotificationAnimation(this, null, 0, null);
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.container), (view, insets) -> {
             animation.updateFromInsets(insets);

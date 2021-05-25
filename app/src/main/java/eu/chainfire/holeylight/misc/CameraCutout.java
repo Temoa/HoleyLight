@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Jorrit "Chainfire" Jongma
+ * Copyright (C) 2019-2021 Jorrit "Chainfire" Jongma
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.hardware.display.DisplayManager;
 import android.view.Display;
 
@@ -32,31 +33,36 @@ import androidx.core.view.WindowInsetsCompat;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class CameraCutout {
     public static class Cutout {
-        private final Rect area;
+        private final RectF area;
         private final Point resolution;
 
         public Cutout(Rect area, Point resolution) {
+            this(new RectF(area), resolution);
+        }
+
+        public Cutout(RectF area, Point resolution) {
             this.area = area;
             this.resolution = resolution;
         }
 
         public Cutout(Cutout src) {
-            this.area = new Rect(src.getArea());
+            this.area = new RectF(src.getAreaF());
             this.resolution = new Point(src.getResolution());
         }
 
-        public Rect getArea() { return area; }
+        public Rect getArea() { return new Rect((int)area.left, (int)area.top, (int)area.right, (int)area.bottom); }
+        public RectF getAreaF() { return area; }
         public Point getResolution() { return resolution; }
 
         public Cutout scaleTo(Point resolution) {
             if (this.resolution.equals(resolution)) return this;
             float sX = (float)resolution.x / (float)this.resolution.x;
             float sY = (float)resolution.y / (float)this.resolution.y;
-            return new Cutout(new Rect(
-                    (int)((float)area.left * sX),
-                    (int)((float)area.top * sY),
-                    (int)((float)area.right * sX),
-                    (int)((float)area.bottom * sY)
+            return new Cutout(new RectF(
+                    area.left * sX,
+                    area.top * sY,
+                    area.right * sX,
+                    area.bottom * sY
             ), resolution);
         }
 
@@ -72,17 +78,17 @@ public class CameraCutout {
                     a = a.scaleTo(b.getResolution());
                 }
             }
-            Rect rA = a.getArea();
-            Rect rB = b.getArea();
+            RectF rA = a.getAreaF();
+            RectF rB = b.getAreaF();
             return
-                    Math.abs(rA.left - rB.left) <= 2 &&
-                    Math.abs(rA.top - rB.top) <= 2 &&
-                    Math.abs(rA.right - rB.right) <= 2 &&
-                    Math.abs(rA.bottom - rB.bottom) <= 2;                          
+                    Math.abs(rA.left - rB.left) <= 2f &&
+                    Math.abs(rA.top - rB.top) <= 2f &&
+                    Math.abs(rA.right - rB.right) <= 2f &&
+                    Math.abs(rA.bottom - rB.bottom) <= 2f;
         }
 
         public boolean isCircular() {
-            return Math.abs(area.width() - area.height()) <= 2;
+            return Math.abs(area.width() - area.height()) <= 2f;
         }
     }
 
@@ -101,7 +107,7 @@ public class CameraCutout {
     public CameraCutout(Context context) {
         this.display = ((DisplayManager)context.getSystemService(Context.DISPLAY_SERVICE)).getDisplay(0);
 
-        int id;
+        int id, id2;
         Resources res = context.getResources();
 
         // below is Samsung S10(?) specific. Newer firmwares on other Samsung devices also seem to have these values present.
@@ -110,7 +116,8 @@ public class CameraCutout {
         nativeMarginTop = id > 0 ? res.getDimensionPixelSize(id) : 0;
 
         id = res.getIdentifier("status_bar_camera_padding", "dimen", "android");
-        nativeMarginRight = id > 0 ? res.getDimensionPixelSize(id) : 0;
+        id2 = res.getIdentifier("status_bar_camera_side_padding", "dimen", "android");
+        nativeMarginRight = id > 0 ? res.getDimensionPixelSize(id) : id2 > 0 ? res.getDimensionPixelSize(id2) : 0;
     }
 
     public Point getNativeResolution() {
@@ -133,19 +140,27 @@ public class CameraCutout {
     }
 
     public void updateFromBoundingRect(Rect rect) {
+        updateFromBoundingRect(new RectF(rect));
+    }
+
+    public void updateFromBoundingRect(RectF rect) {
         Point nativeRes = getNativeResolution();
         Point currentRes = getCurrentResolution();
 
-        Rect r = new Rect(rect);
+        RectF r = new RectF(rect);
 
         // convert margins from native to current resolution, and apply to rect; without this we'd get a big notch rather than just the camera area
-        r.right -= (int)((float)nativeMarginRight * ((float)currentRes.x / (float)nativeRes.x));
-        r.top += (int)((float)nativeMarginTop * ((float)currentRes.y / (float)nativeRes.y));
+        r.right -= (float)nativeMarginRight * ((float)currentRes.x / (float)nativeRes.x);
+        r.top += (float)nativeMarginTop * ((float)currentRes.y / (float)nativeRes.y);
 
         cutout = new Cutout(r, currentRes);
     }
 
     public void updateFromAreaRect(Rect rect) {
+        updateFromAreaRect(new RectF(rect));
+    }
+
+    public void updateFromAreaRect(RectF rect) {
         cutout = new Cutout(rect, getCurrentResolution());
     }
 
